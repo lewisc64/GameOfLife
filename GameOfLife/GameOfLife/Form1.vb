@@ -6,13 +6,16 @@ Public Class Form1
     Private display As VBGame.Display
 
     Public Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+
+        VBGame.XMLIO.knownTypes = {GetType(Cell), GetType(SaveContainer)}
+
         display = New VBGame.Display(Me, New Size(500, 500), "Conway's Game of Life", True)
 
         Dim surface As New VBGame.BitmapSurface(New Size(30, 30))
         surface.fill(VBGame.Colors.white)
-        surface.drawRect(New Rectangle(0, 0, surface.width / 3, surface.height), Color.LightGray)
-        surface.drawRect(New Rectangle(surface.width / 3, surface.height * 2 / 3, surface.width / 3, surface.height / 3), Color.LightGray)
-        surface.drawRect(New Rectangle(surface.width * 2 / 3, surface.width / 3, surface.width / 3, surface.height / 3), Color.LightGray)
+        surface.drawRect(New Rectangle(0, 0, surface.width / 3, surface.height), Color.FromArgb(180, 180, 180))
+        surface.drawRect(New Rectangle(surface.width / 3, surface.height * 2 / 3, surface.width / 3, surface.height / 3), Color.FromArgb(180, 180, 180))
+        surface.drawRect(New Rectangle(surface.width * 2 / 3, surface.width / 3, surface.width / 3, surface.height / 3), Color.FromArgb(180, 180, 180))
         surface.drawText(surface.getRect(), "GOL", VBGame.Colors.black, New Font("Arial", 10, FontStyle.Bold))
         Me.Icon = Icon.FromHandle(surface.getImage().GetHicon())
 
@@ -20,7 +23,7 @@ Public Class Form1
     End Sub
 
     Public Sub mainloop()
-        Dim Grid As New Grid(display, 250)
+        Dim Grid As New Grid(display, 100)
         Dim zoom As Double = 1
         Dim minZoom As Integer = 1
         Dim maxZoom As Integer = 5
@@ -43,7 +46,7 @@ Public Class Form1
         'Grid.ForceAlive(Grid.cells(53, 46))
         'Grid.ForceAlive(Grid.cells(51, 45))
 
-        Grid.Randomize()
+        'Grid.Randomize()
 
         Grid.Update()
 
@@ -71,6 +74,10 @@ Public Class Form1
                 If e.KeyCode = Keys.R Then
                     targetZoom = 1
                     shift = New Point(0, 0)
+                ElseIf e.KeyCode = Keys.S Then
+                    Me.Invoke(Sub() Grid.Save())
+                ElseIf e.KeyCode = Keys.L Then
+                    Me.Invoke(Sub() Grid.Load())
                 End If
             Next
             For Each e As VBGame.MouseEvent In display.getMouseEvents()
@@ -129,6 +136,7 @@ Public Class Form1
             End If
 
             Grid.DrawDirty(cellDisplay)
+            'Grid.DrawAll(cellDisplay)
 
             If gridLines Then
                 For x = 0 To Grid.cells.GetLength(0) * Grid.side - Grid.side Step Grid.side

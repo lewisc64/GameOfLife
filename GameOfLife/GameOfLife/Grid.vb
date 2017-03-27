@@ -4,18 +4,26 @@
 
     Public side As Integer
 
-    Private alive As New List(Of Cell)
+    Public alive As New List(Of Cell)
     Private updateList As New List(Of Cell)
     Private dirty As New List(Of Cell)
 
     Private random As New Random()
 
+    Public width As Integer
+    Public height As Integer
+
+    Public Sub New()
+    End Sub
+
     Public Sub New(display As VBGame.DrawBase, size As Integer)
         side = display.width / size
         Dim temp(display.width / side - 1, display.height / side - 1) As Cell
         cells = temp
-        For x = 0 To cells.GetLength(0) - 1
-            For y = 0 To cells.GetLength(1) - 1
+        width = cells.GetLength(0)
+        height = cells.GetLength(1)
+        For x = 0 To width - 1
+            For y = 0 To height - 1
                 cells(x, y) = New Cell(x, y, side)
             Next
         Next
@@ -99,6 +107,75 @@
             Next
         Next
         Return neighbours
+    End Function
+
+    Public Sub RebuildGrid()
+        Dim temp(width - 1, height - 1) As Cell
+        cells = temp
+        For x As Integer = 0 To width - 1
+            For y As Integer = 0 To height - 1
+                cells(x, y) = New Cell(x, y, side)
+            Next
+        Next
+        For Each Cell As Cell In alive
+            cells(Cell.ix, Cell.iy) = Cell
+        Next
+    End Sub
+
+    Public Sub Save()
+        Dim dialog As New SaveFileDialog
+        dialog.Filter = ".gol|Game of Life File"
+        dialog.ShowDialog()
+        VBGame.XMLIO.Write(dialog.FileName, New SaveContainer(Me))
+    End Sub
+
+    Public Sub Load()
+        Dim dialog As New OpenFileDialog
+        dialog.Filter = ".gol|Game of Life File"
+        dialog.ShowDialog()
+        Dim save As New SaveContainer
+        VBGame.XMLIO.Read(dialog.FileName, save)
+        Dim grid As Grid = save.GetGrid()
+        cells = grid.cells.Clone()
+        alive = grid.alive.ToList()
+        width = grid.width
+        height = grid.height
+        side = grid.side
+        For x As Integer = 0 To width - 1
+            For y As Integer = 0 To height - 1
+                dirty.Add(cells(x, y))
+            Next
+        Next
+        updateList.Clear()
+    End Sub
+
+End Class
+
+Public Class SaveContainer
+
+    Public side As Integer
+    Public alive As New List(Of Cell)
+    Public width As Integer
+    Public height As Integer
+
+    Public Sub New()
+    End Sub
+
+    Public Sub New(grid As Grid)
+        side = grid.side
+        alive = grid.alive.ToList()
+        width = grid.width
+        height = grid.height
+    End Sub
+
+    Public Function GetGrid() As Grid
+        Dim grid As New Grid()
+        grid.side = side
+        grid.width = width
+        grid.height = height
+        grid.alive = alive.ToList()
+        grid.RebuildGrid()
+        Return grid
     End Function
 
 End Class

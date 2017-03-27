@@ -7,6 +7,9 @@
 
     Public alive As Boolean
 
+    Public Sub New()
+    End Sub
+
     Public Sub New(ix As Integer, iy As Integer, side As Integer)
         Me.ix = ix
         Me.iy = iy

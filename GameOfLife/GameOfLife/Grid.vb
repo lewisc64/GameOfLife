@@ -90,8 +90,8 @@ Public Class Grid
     End Sub
 
     Public Sub DrawAll(display As VBGame.DrawBase)
-        For x As Integer = 0 To cells.GetLength(0) - 1
-            For y As Integer = 0 To cells.GetLength(1) - 1
+        For x As Integer = 0 To width - 1
+            For y As Integer = 0 To height - 1
                 cells(x, y).Draw(display)
             Next
         Next
@@ -141,12 +141,16 @@ Public Class Grid
         width = grid.width
         height = grid.height
         side = grid.side
+        MakeAllDirty()
+        updateList.Clear()
+    End Sub
+
+    Public Sub MakeAllDirty()
         For x As Integer = 0 To width - 1
             For y As Integer = 0 To height - 1
                 dirty.Add(cells(x, y))
             Next
         Next
-        updateList.Clear()
     End Sub
 
 End Class

@@ -1,4 +1,4 @@
-﻿Public Class Grid
+Public Class Grid
 
     Public cells(,) As Cell
 
@@ -124,14 +124,14 @@
 
     Public Sub Save()
         Dim dialog As New SaveFileDialog
-        dialog.Filter = ".gol|Game of Life File"
+        dialog.Filter = ".gol|"
         dialog.ShowDialog()
-        VBGame.XMLIO.Write(dialog.FileName, New SaveContainer(Me))
+        VBGame.XMLIO.Write(dialog.FileName & If(dialog.FileName.Contains(".gol"), "", ".gol"), New SaveContainer(Me))
     End Sub
 
     Public Sub Load()
         Dim dialog As New OpenFileDialog
-        dialog.Filter = ".gol|Game of Life File"
+        dialog.Filter = ".gol|"
         dialog.ShowDialog()
         Dim save As New SaveContainer
         VBGame.XMLIO.Read(dialog.FileName, save)

@@ -101,7 +101,7 @@ Public Class Grid
         Dim neighbours As New List(Of Cell)
         For x As Integer = Cell.ix - 1 To Cell.ix + 1
             For y As Integer = Cell.iy - 1 To Cell.iy + 1
-                If x >= 0 AndAlso y >= 0 AndAlso x < Grid.cells.GetLength(0) AndAlso y < Grid.cells.GetLength(1) AndAlso Not (x = Cell.ix And y = Cell.iy) Then
+                If x >= 0 AndAlso y >= 0 AndAlso x < width AndAlso y < height AndAlso Not (x = Cell.ix And y = Cell.iy) Then
                     neighbours.Add(Grid.cells(x, y))
                 End If
             Next

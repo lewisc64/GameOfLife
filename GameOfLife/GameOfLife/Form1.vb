@@ -1,9 +1,11 @@
-﻿Imports System.Threading
+Imports System.Threading
 
 Public Class Form1
 
-    Private thread As New Thread(AddressOf mainloop)
+    Private thread As New Thread(AddressOf mainLoop)
     Private display As VBGame.Display
+
+    Public gridSize As Integer = 50
 
     Public Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
 
@@ -22,8 +24,14 @@ Public Class Form1
         thread.Start()
     End Sub
 
-    Public Sub mainloop()
-        Dim Grid As New Grid(display, 100)
+    Public Sub mainLoop()
+        While True
+            simulationLoop()
+        End While
+    End Sub
+
+    Public Sub simulationLoop()
+        Dim Grid As New Grid(display, gridSize)
         Dim zoom As Double = 1
         Dim minZoom As Integer = 1
         Dim maxZoom As Integer = 5
@@ -78,6 +86,11 @@ Public Class Form1
                     Me.Invoke(Sub() Grid.Save())
                 ElseIf e.KeyCode = Keys.L Then
                     Me.Invoke(Sub() Grid.Load())
+                    gridSize = Grid.width
+                ElseIf e.KeyCode = Keys.N Then
+                    display.fill(VBGame.Colors.white)
+                    gridSize = InputBox("Grid size?", "Game of Life", 50)
+                    Exit While
                 End If
             Next
             For Each e As VBGame.MouseEvent In display.getMouseEvents()

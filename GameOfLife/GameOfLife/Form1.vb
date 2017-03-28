@@ -9,7 +9,7 @@ Public Class Form1
 
     Public Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
 
-        VBGame.XMLIO.knownTypes = {GetType(Cell), GetType(SaveContainer)}
+        VBGame.XMLIO.knownTypes = {GetType(Cell), GetType(Saving.SaveContainer)}
 
         display = New VBGame.Display(Me, New Size(500, 500), "Conway's Game of Life", True)
 
@@ -95,6 +95,8 @@ Public Class Form1
                 ElseIf e.KeyCode = Keys.G Then
                     gridLines = Not gridLines
                     Grid.MakeAllDirty()
+                ElseIf e.KeyCode = Keys.E Then
+                    Console.WriteLine(Saving.ToRLE(Grid))
                 End If
             Next
             For Each e As VBGame.MouseEvent In display.getMouseEvents()
@@ -155,10 +157,10 @@ Public Class Form1
             Grid.DrawDirty(cellDisplay)
 
             If gridLines Then
-                For x = 0 To Grid.cells.GetLength(0) * Grid.side - Grid.side Step Grid.side
+                For x = 0 To Grid.width * Grid.side - Grid.side Step Grid.side
                     cellDisplay.drawLine(New Point(x, 0), New Point(x, display.height), Color.LightGray)
                 Next
-                For y = 0 To Grid.cells.GetLength(1) * Grid.side - Grid.side Step Grid.side
+                For y = 0 To Grid.height * Grid.side - Grid.side Step Grid.side
                     cellDisplay.drawLine(New Point(0, y), New Point(display.width, y), Color.LightGray)
                 Next
             End If

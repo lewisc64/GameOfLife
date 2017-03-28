@@ -1,3 +1,6 @@
+Imports System.Text.RegularExpressions
+Imports System.IO
+
 Public Class Grid
 
     Public cells(,) As Cell
@@ -122,20 +125,36 @@ Public Class Grid
         Next
     End Sub
 
+    Private Shared dialogFilter As String = "GameOfLife File|*.gol|Run Length Encoded File|*.rle"
+
     Public Sub Save()
         Dim dialog As New SaveFileDialog
-        dialog.Filter = ".gol|"
+        dialog.Filter = dialogFilter
         dialog.ShowDialog()
-        VBGame.XMLIO.Write(dialog.FileName & If(dialog.FileName.Contains(".gol"), "", ".gol"), New SaveContainer(Me))
+        If dialog.FileName.Contains(".gol") Then
+            Console.WriteLine(dialog.FilterIndex)
+            VBGame.XMLIO.Write(dialog.FileName & If(dialog.FileName.Contains(".gol"), "", ".gol"), New Saving.SaveContainer(Me))
+        ElseIf dialog.FileName.Contains(".rle") Then
+            Dim writer As New StreamWriter(dialog.FileName)
+            writer.Write(Saving.ToRLE(Me))
+            writer.Close()
+        End If
     End Sub
 
     Public Sub Load()
         Dim dialog As New OpenFileDialog
-        dialog.Filter = ".gol|"
+        dialog.Filter = dialogFilter
         dialog.ShowDialog()
-        Dim save As New SaveContainer
-        VBGame.XMLIO.Read(dialog.FileName, save)
-        Dim grid As Grid = save.GetGrid()
+        Dim grid As New Grid
+        If dialog.FileName.Contains(".gol") Then
+            Dim save As New Saving.SaveContainer
+            VBGame.XMLIO.Read(dialog.FileName, save)
+            grid = save.GetGrid()
+        ElseIf dialog.FileName.Contains(".rle") Then
+            Dim reader As New StreamReader(dialog.FileName)
+            grid = Saving.FromRLE(reader.ReadToEnd())
+            grid.RebuildGrid()
+        End If
         cells = grid.cells.Clone()
         alive = grid.alive.ToList()
         width = grid.width
@@ -155,31 +174,138 @@ Public Class Grid
 
 End Class
 
-Public Class SaveContainer
+Public Class Saving
 
-    Public side As Integer
-    Public alive As New List(Of Cell)
-    Public width As Integer
-    Public height As Integer
+    Private Shared Function GetChar(Cell As Cell) As String
+        Return If(Cell.alive, "o", "b")
+    End Function
 
-    Public Sub New()
-    End Sub
+    Public Shared Function ToRLE(grid As Grid) As String
+        Dim file As String = "#C Grid.side = " & grid.side & vbCrLf & "x = " & grid.width & ", y = " & grid.height & vbCrLf
+        Dim encoding As String = ""
+        For y As Integer = 0 To grid.height - 1
+            For x As Integer = 0 To grid.width - 1
+                encoding &= GetChar(grid.cells(x, y))
+            Next
+            If y < grid.height - 1 Then
+                encoding &= "$"
+            End If
+        Next
+        encoding &= "!"
+        Dim current As String = ""
+        Dim add As Boolean
+        Dim i As Integer = 0
+        While i < encoding.Length
+            If current = "" Then
+                current = encoding(i)
+            End If
+            add = False
+            If encoding(i) = "o" OrElse encoding(i) = "b" Then
+                If current(0) <> encoding(i) Then
+                    add = True
+                Else
+                    current &= encoding(i)
+                End If
+            Else
+                add = True
+            End If
+            If add Then
+                If current.Length = 1 Then
+                    file &= current
+                Else
+                    file &= If(current.Length - 1 = 1, "", current.Length - 1) & current(0)
+                    i -= 1
+                End If
+                current = ""
+            End If
+            i += 1
+        End While
+        Return file
+    End Function
 
-    Public Sub New(grid As Grid)
-        side = grid.side
-        alive = grid.alive.ToList()
-        width = grid.width
-        height = grid.height
-    End Sub
-
-    Public Function GetGrid() As Grid
-        Dim grid As New Grid()
-        grid.side = side
-        grid.width = width
-        grid.height = height
-        grid.alive = alive.ToList()
-        grid.RebuildGrid()
+    Public Shared Function FromRLE(file As String) As Grid
+        If Not file.Contains(vbCrLf) Then
+            If file.Contains(vbCr) Then
+                file.Replace(vbCr, vbCrLf)
+            ElseIf file.Contains(vbLf) Then
+                file.Replace(vbLf, vbCrLf)
+            End If
+        End If
+        Dim grid As New Grid
+        grid.side = 10
+        Dim sections As List(Of String) = file.Split({CChar(vbCrLf)}).ToList()
+        For Each section As String In sections.ToList()
+            If section.Contains("#") Then
+                If section.Contains("#C Grid.side = ") Then
+                    grid.side = CInt(section.Split({CChar("=")})(1).Trim())
+                End If
+                sections.Remove(section) 'I don't need all this information (probably).
+            End If
+        Next
+        Dim header As String = sections(0)
+        Dim data As String = sections(1)
+        Dim matches As MatchCollection = Regex.Matches(header, "[0-9]+")
+        grid.width = matches.Item(0).Value
+        grid.height = matches.Item(1).Value
+        matches = Regex.Matches(data, "([0-9]*[bo]|\$)")
+        Dim x As Integer = 0
+        Dim y As Integer = 0
+        Dim split As MatchCollection
+        Dim cell As Cell
+        For Each Match As Match In matches
+            If Match.Value.Length = 1 Then
+                If Match.Value = "$" Then
+                    x = 0
+                    y += 1
+                Else
+                    If Match.Value = "o" Then
+                        cell = New Cell(x, y, grid.side)
+                        cell.alive = True
+                        grid.alive.Add(cell)
+                    End If
+                    x += 1
+                End If
+                Continue For
+            End If
+            split = Regex.Matches(Match.Value, "([0-9]+|[bo])")
+            For i As Integer = 1 To split.Item(0).Value
+                If split.Item(1).Value = "o" Then
+                    cell = New Cell(x, y, grid.side)
+                    cell.alive = True
+                    grid.alive.Add(cell)
+                End If
+                x += 1
+            Next
+        Next
         Return grid
     End Function
 
+    Public Class SaveContainer
+
+        Public side As Integer
+        Public alive As New List(Of Cell)
+        Public width As Integer
+        Public height As Integer
+
+        Public Sub New()
+        End Sub
+
+        Public Sub New(grid As Grid)
+            side = grid.side
+            alive = grid.alive.ToList()
+            width = grid.width
+            height = grid.height
+        End Sub
+
+        Public Function GetGrid() As Grid
+            Dim grid As New Grid()
+            grid.side = side
+            grid.width = width
+            grid.height = height
+            grid.alive = alive.ToList()
+            grid.RebuildGrid()
+            Return grid
+        End Function
+
+    End Class
 End Class

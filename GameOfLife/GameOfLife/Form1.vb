@@ -87,10 +87,14 @@ Public Class Form1
                 ElseIf e.KeyCode = Keys.L Then
                     Me.Invoke(Sub() Grid.Load())
                     gridSize = Grid.width
+                    gridLines = Grid.side >= 3
                 ElseIf e.KeyCode = Keys.N Then
                     display.fill(VBGame.Colors.white)
                     gridSize = InputBox("Grid size?", "Game of Life", 50)
                     Exit While
+                ElseIf e.KeyCode = Keys.G Then
+                    gridLines = Not gridLines
+                    Grid.MakeAllDirty()
                 End If
             Next
             For Each e As VBGame.MouseEvent In display.getMouseEvents()
@@ -149,7 +153,6 @@ Public Class Form1
             End If
 
             Grid.DrawDirty(cellDisplay)
-            'Grid.DrawAll(cellDisplay)
 
             If gridLines Then
                 For x = 0 To Grid.cells.GetLength(0) * Grid.side - Grid.side Step Grid.side

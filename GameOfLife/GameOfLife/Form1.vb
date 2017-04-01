@@ -86,6 +86,7 @@ Public Class Form1
                     Me.Invoke(Sub() Grid.Save())
                 ElseIf e.KeyCode = Keys.L Then
                     Me.Invoke(Sub() Grid.Load())
+                    'cellDisplay.fill(VBGame.Colors.white)
                     gridSize = Grid.width
                     gridLines = Grid.side >= 3
                 ElseIf e.KeyCode = Keys.N Then

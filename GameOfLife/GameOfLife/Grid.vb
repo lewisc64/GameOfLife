@@ -125,43 +125,50 @@ Public Class Grid
         Next
     End Sub
 
-    Private Shared dialogFilter As String = "GameOfLife File|*.gol|Run Length Encoded File|*.rle"
+    Private Shared dialogFilter As String = "GameOfLife File|*.gol|Run Length Encoded File|*.rle|Portable Network Graphics|*.png"
 
     Public Sub Save()
         Dim dialog As New SaveFileDialog
         dialog.Filter = dialogFilter
-        dialog.ShowDialog()
-        If dialog.FileName.Contains(".gol") Then
-            Console.WriteLine(dialog.FilterIndex)
-            VBGame.XMLIO.Write(dialog.FileName & If(dialog.FileName.Contains(".gol"), "", ".gol"), New Saving.SaveContainer(Me))
-        ElseIf dialog.FileName.Contains(".rle") Then
-            Dim writer As New StreamWriter(dialog.FileName)
-            writer.Write(Saving.ToRLE(Me))
-            writer.Close()
+        If dialog.ShowDialog() = DialogResult.OK Then
+            If dialog.FileName.Contains(".gol") Then
+                Console.WriteLine(dialog.FilterIndex)
+                VBGame.XMLIO.Write(dialog.FileName & If(dialog.FileName.Contains(".gol"), "", ".gol"), New Saving.SaveContainer(Me))
+            ElseIf dialog.FileName.Contains(".rle") Then
+                Dim writer As New StreamWriter(dialog.FileName)
+                writer.Write(Saving.ToRLE(Me))
+                writer.Close()
+            ElseIf dialog.FileName.Contains(".png") Then
+                VBGame.Images.save(Saving.ToImage(Me), dialog.FileName)
+            End If
         End If
     End Sub
 
     Public Sub Load()
         Dim dialog As New OpenFileDialog
         dialog.Filter = dialogFilter
-        dialog.ShowDialog()
-        Dim grid As New Grid
-        If dialog.FileName.Contains(".gol") Then
-            Dim save As New Saving.SaveContainer
-            VBGame.XMLIO.Read(dialog.FileName, save)
-            grid = save.GetGrid()
-        ElseIf dialog.FileName.Contains(".rle") Then
-            Dim reader As New StreamReader(dialog.FileName)
-            grid = Saving.FromRLE(reader.ReadToEnd())
-            grid.RebuildGrid()
+        If dialog.ShowDialog() = DialogResult.OK Then
+            Dim grid As New Grid
+            If dialog.FileName.Contains(".gol") Then
+                Dim save As New Saving.SaveContainer
+                VBGame.XMLIO.Read(dialog.FileName, save)
+                grid = save.GetGrid()
+            ElseIf dialog.FileName.Contains(".rle") Then
+                Dim reader As New StreamReader(dialog.FileName)
+                grid = Saving.FromRLE(reader.ReadToEnd())
+                grid.RebuildGrid()
+            ElseIf dialog.FileName.Contains(".png") Then
+                grid = Saving.FromImage(VBGame.Images.load(dialog.FileName))
+                grid.RebuildGrid()
+            End If
+            cells = grid.cells.Clone()
+            alive = grid.alive.ToList()
+            width = grid.width
+            height = grid.height
+            side = grid.side
+            MakeAllDirty()
+            updateList.Clear()
         End If
-        cells = grid.cells.Clone()
-        alive = grid.alive.ToList()
-        width = grid.width
-        height = grid.height
-        side = grid.side
-        MakeAllDirty()
-        updateList.Clear()
     End Sub
 
     Public Sub MakeAllDirty()
@@ -178,6 +185,34 @@ Public Class Saving
 
     Private Shared Function GetChar(Cell As Cell) As String
         Return If(Cell.alive, "o", "b")
+    End Function
+
+    Public Shared Function ToImage(grid As Grid) As Bitmap
+        Dim image As New Bitmap(grid.width, grid.height)
+        Dim g As Graphics = Graphics.FromImage(image)
+        g.FillRectangle(Brushes.White, New Rectangle(0, 0, image.Width, image.Height))
+        For Each Cell As Cell In grid.alive
+            g.FillRectangle(Brushes.Black, New Rectangle(Cell.ix, Cell.iy, 1, 1))
+        Next
+        Return image
+    End Function
+
+    Public Shared Function FromImage(image As Bitmap)
+        Dim grid As New Grid
+        grid.side = 1
+        grid.width = image.Width
+        grid.height = image.Height
+        Dim cell As Cell
+        For y As Integer = 0 To image.Height - 1
+            For x As Integer = 0 To image.Width - 1
+                If image.GetPixel(x, y).GetBrightness < 0.5 Then
+                    cell = New Cell(x, y, grid.side)
+                    cell.alive = True
+                    grid.alive.Add(cell)
+                End If
+            Next
+        Next
+        Return grid
     End Function
 
     Public Shared Function ToRLE(grid As Grid) As String
